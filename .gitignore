@@ -3,3 +3,4 @@ __pycache__/
 data/
 *.pth
 .DS_Store
+results/energy_test.csv
