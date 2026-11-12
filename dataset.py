@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 
-def get_data(batch_size=64):
+def get_data(batch_size=64, seed=42):
     transform = transforms.ToTensor()
 
     training_data = datasets.FashionMNIST(
@@ -20,16 +20,20 @@ def get_data(batch_size=64):
         transform=transform
     )
 
-    generator = torch.Generator().manual_seed(42)
+    split_generator = torch.Generator().manual_seed(42)
+    shuffle_generator = torch.Generator().manual_seed(seed)
 
     train_data, val_data = random_split(
         training_data,
         [50000, 10000],
-        generator=generator
+        generator=split_generator
     )
 
     train_loader = DataLoader(
-        train_data, batch_size=batch_size, shuffle=True
+        train_data,
+        batch_size=batch_size,
+        shuffle=True,
+        generator=shuffle_generator,
     )
 
     val_loader = DataLoader(

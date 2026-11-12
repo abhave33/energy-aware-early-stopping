@@ -197,11 +197,18 @@ These results are preliminary and were generated using a short computational wor
 
 ### Phase 2 Integration
 
-During Phase 2, CodeCarbon will be integrated into the CNN training pipeline.
+CodeCarbon is integrated into the shared CNN training runner for fixed, standard,
+and EAES modes. Each epoch uses the same boundary: tracker start, full training
+pass, validation pass, and tracker stop. Energy values in kWh are converted to Wh
+for storage and EAES scoring. CodeCarbon measurements remain estimates, not exact
+physical readings.
 
-Energy consumption will be measured using a consistent epoch boundary across all methods and recorded alongside validation accuracy, validation loss, and training duration.
-
-CodeCarbon reports energy consumption in kWh. These measurements will be converted to Wh when calculating the EAES score.
+The runner records energy and emissions per epoch, total training duration, and
+final test accuracy in separate run folders. Zero or unavailable energy readings
+are not used in EAES division; such epochs reset the consecutive-low-score count.
+Missing finalized tracker data stops the run instead of being reported as valid
+energy. Full comparative experiments and threshold selection have not yet been
+completed.
 
 ## 10. Limitations
 

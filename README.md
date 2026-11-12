@@ -12,8 +12,7 @@ We are comparing three training methods:
 
 The project uses a Convolutional Neural Network (CNN) trained on Fashion-MNIST. CodeCarbon is used to estimate energy consumption and CO₂-equivalent emissions.
 
-**Progress Presentation:** November 9, 2026  
-**Presentation Goal:** Approximately 75% of the overall project completed.
+**Progress Presentation:** November 9, 2026
 
 ---
 
@@ -41,7 +40,7 @@ The project uses a Convolutional Neural Network (CNN) trained on Fashion-MNIST. 
 
 ## Phase 1 — Foundation
 
-**Status: Core Phase 1 deliverables completed.**
+**Status: Completed.**
 
 ### CNN and Dataset Setup
 
@@ -73,7 +72,37 @@ CodeCarbon has also been successfully tested on a separate computational workloa
 
 The research background and EAES algorithm design are documented in the `docs/` directory.
 
-The project is ready to begin Phase 2 implementation.
+The original three-epoch run remains saved as `results/history.csv`. The experiment
+runner writes new results into unique subdirectories and does not overwrite that
+Phase 1 file.
+
+## Phase 2 — Experiment Runner
+
+The shared training runner supports `fixed`, `standard`, and `eaes` modes. Each
+epoch is timed and measured with CodeCarbon over the same boundary: tracker start,
+full training pass, validation pass, and tracker stop. Training accuracy,
+validation accuracy/loss, duration, energy, and estimated CO2-equivalent emissions
+are saved to a run-specific `history.csv`, together with repeated run totals and
+test accuracy. The same final totals and checkpoint details are summarized in
+`summary.json`.
+
+CodeCarbon estimates are not exact physical measurements. Missing or invalid
+energy is marked in the CSV; EAES skips scoring for that epoch and resets its
+consecutive-low-score count. If CodeCarbon does not produce finalized measurement
+data, the run fails visibly rather than reporting unverified energy. Aggregate
+energy is blank unless every epoch has a positive measurement.
+
+Checkpoint selection:
+
+- `fixed`: test the final epoch's weights.
+- `standard`: test the checkpoint with the lowest validation loss; ties keep the
+  earlier checkpoint.
+- `eaes`: test the checkpoint with the lowest validation loss; ties keep the
+  earlier checkpoint.
+
+Standard early stopping uses validation-loss patience 3 by default. EAES requires
+an explicit threshold in accuracy percentage points per Wh because threshold
+values remain to be selected by preliminary experiments.
 
 ---
 
@@ -92,8 +121,9 @@ The project is ready to begin Phase 2 implementation.
 | Optimizer | Adam |
 | Learning rate | 0.001 |
 | Dataset split seed | 42 |
-| Initial training test | 3 epochs |
-| Fixed-training baseline | 30 epochs |
+| Initial Phase 1 training test | 3 epochs |
+| Maximum Phase 2 epochs | 30 |
+| Standard early-stopping patience | 3 epochs |
 | Energy measurement | CodeCarbon |
 
 The experimental settings will remain consistent across comparable training methods.
@@ -110,15 +140,20 @@ energy-aware-early-stopping/
 ├── train.py
 ├── plot_results.py
 ├── energy_test.py
+├── tests/
+│   └── test_train.py
 ├── docs/
 │   ├── research_notes.md
 │   └── eaes_design.md
 ├── data/
 └── results/
-    ├── history.csv
+    ├── history.csv                 # preserved Phase 1, three-epoch results
     ├── accuracy.png
     ├── loss.png
-    └── model.pth
+    └── <method>_seed<seed>_<time>/
+        ├── history.csv
+        ├── summary.json
+        └── model.pth
 ```
 
 The downloaded dataset, local virtual environment, raw energy-test data, and trained model weights may be excluded from Git through `.gitignore`.
@@ -147,13 +182,42 @@ python dataset.py
 python model.py
 ```
 
-### 4. Run Initial CNN Training
+### 4. Run the Three Experiment Methods
+
+Each command runs up to 30 epochs and creates a new results directory, leaving
+existing results untouched:
 
 ```bash
-python train.py
+python train.py --method fixed
+python train.py --method standard --patience 3
+python train.py --method eaes --eaes-threshold YOUR_THRESHOLD
 ```
 
-### 5. Generate Training Graphs
+Replace `YOUR_THRESHOLD` with the threshold selected for the experiment. No EAES
+threshold is selected in the project yet; the value is measured in validation
+accuracy percentage points per Wh. Use the same seed (default `42`) and hardware
+for comparable methods. Change the seed explicitly for repeated runs, for example
+`--seed 43`.
+
+To run a one-epoch integration smoke test without downloading Fashion-MNIST or
+producing research data:
+
+```bash
+python train.py --method fixed --smoke-test
+python train.py --method standard --smoke-test
+python train.py --method eaes --eaes-threshold 0.1 --smoke-test
+```
+
+Smoke-test outputs are labeled `smoke_...` and use synthetic data. They validate
+the runner and result-writing path only; do not use them as experimental results.
+
+Run the stopping-rule unit tests with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+### 5. Generate the Original Phase 1 Training Graphs
 
 ```bash
 python plot_results.py
@@ -165,7 +229,9 @@ python plot_results.py
 python energy_test.py
 ```
 
-The initial CNN training script runs three epochs. Full 30-epoch experiments will be implemented during Phase 2.
+`plot_results.py` continues to read the preserved Phase 1 `results/history.csv`.
+Phase 2 run-specific CSVs can be plotted by selecting a run's CSV in a separate
+analysis step.
 
 ---
 
@@ -272,27 +338,26 @@ Research background and citations are documented in `docs/research_notes.md`.
 
 ---
 
-## Phase 2 — Implementation
+## Phase 2 — Implementation Status
 
 ### Project Partner — Baseline Methods
 
-- [ ] Implement fixed 30-epoch training
-- [ ] Implement standard early stopping based on validation loss
-- [ ] Save baseline accuracy, runtime, and loss measurements
-- [ ] Prepare baseline results for comparison
+- [x] Implement fixed training up to 30 epochs
+- [x] Implement standard early stopping based on validation loss
+- [x] Save accuracy, runtime, and loss measurements
 
 ### EAES Development
 
-- [ ] Integrate CodeCarbon into the CNN training loop
-- [ ] Record estimated energy consumption per epoch
-- [ ] Implement EAES stopping logic
-- [ ] Test stopping conditions
+- [x] Integrate CodeCarbon into the CNN training loop
+- [x] Record estimated energy consumption per epoch
+- [x] Implement EAES stopping logic
+- [x] Test stopping conditions
 - [ ] Select initial low, medium, and high thresholds
 
 ### Joint Tasks
 
-- [ ] Integrate the baseline and EAES implementations
-- [ ] Verify consistent experimental settings
+- [x] Integrate the baseline and EAES implementations
+- [x] Verify consistent experimental settings
 - [ ] Begin repeated experiments
 - [ ] Generate comparison graphs
 - [ ] Analyze preliminary results
@@ -304,7 +369,7 @@ Research background and citations are documented in `docs/research_notes.md`.
 | Phase | Tasks | Status |
 |---|---|---|
 | Phase 1 | Dataset, CNN, research, EAES design, energy-tracking test | Completed |
-| Phase 2 | Fixed training, standard early stopping, CodeCarbon integration, EAES implementation | Next |
+| Phase 2 | Implement and smoke-test all three training methods | Implementation complete; full runs pending |
 | Phase 3 | Repeated experiments and comparison of training methods | Planned |
 | Phase 4 | Results analysis and progress presentation | Planned |
 | Final Stage | Further experiments, refinements, and final project report | Planned |

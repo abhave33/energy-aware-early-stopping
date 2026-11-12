@@ -38,7 +38,23 @@ Validation accuracy is expressed in percentage points, and energy consumption is
 
 Four epochs of validation accuracy are required to calculate the first smoothed improvement. However, EAES will not make a stopping decision before epoch 5.
 
-If energy consumption is zero or invalid, the score is skipped and the consecutive low-score counter resets.
+Validation accuracies are converted from fractions to percentage points before
+smoothing. For example, an accuracy of `0.85` is represented as `85.0`.
+
+At epoch `t`, the runner calculates:
+
+- Current average: mean of validation accuracies at epochs `t-2`, `t-1`, and `t`.
+- Previous average: mean of validation accuracies at epochs `t-3`, `t-2`, and `t-1`.
+- Improvement: `max(0, current average - previous average)`, in percentage points.
+
+The improvement can be recorded at epoch 4, once four accuracy observations
+exist, but score evaluation and stopping decisions begin only at epoch 5.
+
+If energy is zero, missing, non-finite, or invalid, the score is skipped and the
+consecutive low-score counter resets. CodeCarbon measurement exceptions or the
+absence of finalized measurement data stop the run visibly; the runner does not
+substitute a guessed value. A zero reading is retained as zero in the epoch CSV,
+but is not used as a divisor.
 
 ## Stopping Rules
 
@@ -99,18 +115,22 @@ For epoch = 1 to 30:
     If low_score_count >= 3:
         Stop training
 
-Save the final model and experiment results.
+Save the selected checkpoint and experiment results. Evaluate test accuracy
+using the final epoch for fixed training and the lowest-validation-loss
+checkpoint for standard early stopping and EAES; ties keep the earlier epoch.
 
 ## Thresholds
 
-Three EAES thresholds will be evaluated:
+Three EAES thresholds are intended to be evaluated:
 
 - Low threshold: TBD
 - Medium threshold: TBD
 - High threshold: TBD
 
-Thresholds will be selected using preliminary
-training experiments.
+The values are not selected yet. Supply the selected value with
+`--eaes-threshold`; the CLI requires it for EAES runs rather than silently using
+an arbitrary default. It is measured in validation accuracy percentage points
+per Wh.
 
 ## Comparison Methods
 
@@ -132,3 +152,14 @@ one percentage point.
 - Repeat each experimental condition with 3 seeds.
 - Convert CodeCarbon kWh readings to Wh.
 - Record emissions, accuracy, energy, and runtime.
+- Measure each epoch from CodeCarbon start through one complete training pass,
+  validation pass, and CodeCarbon stop. Use the same boundary for all methods.
+- Include CodeCarbon initialization/stop in the recorded epoch duration. Test-set
+  evaluation and checkpoint writing are outside the epoch energy boundary.
+- Save each run in a new results subdirectory to preserve existing results.
+- Use the final epoch checkpoint for fixed training. For standard and EAES, save
+  the checkpoint with the lowest validation loss (ties keep the earlier epoch)
+  and evaluate that checkpoint on the test set.
+- The per-run CSV records each epoch and the final test accuracy; `summary.json`
+  records totals. Total energy is reported only when every epoch has a positive
+  energy reading, preventing a partial sum from appearing complete.
