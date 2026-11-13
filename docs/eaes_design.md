@@ -121,16 +121,21 @@ checkpoint for standard early stopping and EAES; ties keep the earlier epoch.
 
 ## Thresholds
 
-Three EAES thresholds are intended to be evaluated:
+Preliminary thresholds selected from the fixed seed-42 validation/energy
+trajectory for the initial Phase 3 runs:
 
-- Low threshold: TBD
-- Medium threshold: TBD
-- High threshold: TBD
+- Low: `1.0` accuracy percentage points per Wh. On the fixed-run trajectory,
+  this would first stop at epoch 13, allowing moderate efficiency scores.
+- Medium: `3.0` accuracy percentage points per Wh. This would first stop at
+  epoch 10, stopping after the early high-gain period.
+- High: `5.0` accuracy percentage points per Wh. This would first stop at epoch
+  8, requiring higher gains per Wh and stopping earlier.
 
-The values are not selected yet. Supply the selected value with
-`--eaes-threshold`; the CLI requires it for EAES runs rather than silently using
-an arbitrary default. It is measured in validation accuracy percentage points
-per Wh.
+These are preliminary experiment settings, not tuned or final thresholds.
+Actual stopping epochs may differ because each experiment's measured epoch
+energy can vary. Supply the selected value with `--eaes-threshold`; the CLI
+requires it rather than silently using an arbitrary default. Threshold units
+are validation accuracy percentage points per Wh.
 
 ## Comparison Methods
 
