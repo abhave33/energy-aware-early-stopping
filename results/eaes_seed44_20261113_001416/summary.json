@@ -1,0 +1,19 @@
+{
+  "method": "eaes",
+  "seed": 44,
+  "eaes_threshold_accuracy_points_per_wh": 3.0,
+  "max_epochs": 30,
+  "patience": null,
+  "total_epochs_completed": 8,
+  "stop_reason": "eaes_three_consecutive_low_scores",
+  "checkpoint_epoch": 6,
+  "checkpoint_selection": "lowest validation loss; ties keep the earlier epoch",
+  "test_accuracy": 0.913,
+  "total_training_time_seconds": 197.63715000031516,
+  "total_energy_wh": 1.2735014288959874,
+  "energy_measurement_complete": true,
+  "total_co2_emissions_kg": 0.000414432485450997,
+  "emissions_measurement_complete": true,
+  "smoke_test_synthetic_data": false,
+  "checkpoint_file": "model.pth"
+}

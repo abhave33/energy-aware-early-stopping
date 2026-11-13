@@ -153,7 +153,8 @@ The following values will be recorded and compared:
 - Estimated energy consumption (kWh and Wh)
 - Estimated CO₂-equivalent emissions
 
-Each experimental condition will be repeated three times using different random seeds.
+Each experimental condition was repeated three times using random seeds 42, 43,
+and 44.
 
 To maintain fairness, the same dataset split, CNN architecture, optimizer, learning rate, epoch limit, and computer will be used across comparable conditions.
 
@@ -207,8 +208,63 @@ The runner records energy and emissions per epoch, total training duration, and
 final test accuracy in separate run folders. Zero or unavailable energy readings
 are not used in EAES division; such epochs reset the consecutive-low-score count.
 Missing finalized tracker data stops the run instead of being reported as valid
-energy. Full comparative experiments and threshold selection have not yet been
-completed.
+energy. The initial comparison experiments for thresholds 1, 3, and 5 have been
+completed across three seeds; results and limitations are summarized below.
+
+## Phase 3 — Repeated Experiment Results
+
+The five conditions were run sequentially on CPU using the same Fashion-MNIST
+split (split seed 42), CNN, optimizer, learning rate, and maximum of 30 epochs.
+Training seeds were 42, 43, and 44. There are 15 valid runs: one run per method
+and seed. All three seeds are present for every method in
+`results/analysis/method_comparison.csv`.
+
+| Method | Test accuracy (%) | Epochs | Training time (s) | Estimated energy (Wh) | Energy saved vs. fixed | Energy saved vs. standard |
+|---|---:|---:|---:|---:|---:|---:|
+| Fixed | 91.66 ± 0.18 | 30.00 ± 0.00 | 767.96 ± 38.54 | 4.6385 ± 0.4495 | 0.00% | -190.50% |
+| Standard | 91.52 ± 0.29 | 10.67 ± 1.53 | 270.63 ± 36.73 | 1.5967 ± 0.2361 | 65.58% | 0.00% |
+| EAES low (1) | 91.52 ± 0.29 | 12.67 ± 0.58 | 312.84 ± 16.45 | 1.9074 ± 0.0895 | 58.88% | -19.46% |
+| EAES medium (3) | 91.66 ± 0.31 | 8.67 ± 1.15 | 215.83 ± 28.00 | 1.3284 ± 0.1545 | 71.36% | 16.81% |
+| EAES high (5) | 91.66 ± 0.31 | 8.00 ± 0.00 | 197.97 ± 6.18 | 1.2090 ± 0.0405 | 73.94% | 24.28% |
+
+Entries are mean ± sample standard deviation over the three seeds. Energy savings
+are calculated from method mean energy:
+`(fixed mean energy - method mean energy) / fixed mean energy * 100`; savings
+relative to standard use the same formula with standard mean energy as the
+baseline. A negative value means the method used more energy than that baseline.
+Every method's test accuracy was within one percentage point of fixed training
+for each matched seed. EAES high had the lowest mean energy; EAES medium and high
+used less energy than standard on all three seeds, while EAES low used more
+energy than standard on average.
+
+### Anomalous Run Excluded from Aggregates
+
+The first low-threshold seed-42 attempt,
+`results/eaes_seed42_20261112_161203`, is retained unchanged for auditability.
+One epoch took approximately 24,135 seconds and recorded approximately 67.35 Wh,
+more than five times the cross-run median epoch duration and energy. The
+analysis marks it `outlier_review` and excludes it from method aggregates.
+The separate valid seed-42 low-threshold rerun is included instead. No other run
+met the analyzer's outlier rule, and the 15 included runs had positive,
+finite per-epoch energy and duration readings. CodeCarbon estimates are not
+exact physical measurements.
+
+The analysis outputs are `results/analysis/run_summary.csv`,
+`results/analysis/method_comparison.csv`, and four PNG comparisons. The
+run-level file retains the anomalous record and its exclusion reason; the
+method-level file contains three valid runs and three unique seeds for each
+condition. No synthetic smoke-test runs are present in the experiment folders
+or included in the comparison.
+
+## Limitations
+
+- Only one dataset (Fashion-MNIST) and one CNN architecture were evaluated.
+- CodeCarbon reports estimated energy and CO₂e; this study did not use a physical
+  electricity meter, and background activity can affect the estimates.
+- Each condition was run with only three random seeds, limiting the strength of
+  conclusions about variability and generalization.
+- The conclusions may not transfer to different datasets, model architectures,
+  hardware, or operating conditions.
 
 ## 10. Limitations
 

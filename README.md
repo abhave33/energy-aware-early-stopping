@@ -100,9 +100,9 @@ Checkpoint selection:
 - `eaes`: test the checkpoint with the lowest validation loss; ties keep the
   earlier checkpoint.
 
-Standard early stopping uses validation-loss patience 3 by default. EAES requires
-an explicit threshold in accuracy percentage points per Wh because threshold
-values remain to be selected by preliminary experiments.
+Standard early stopping uses validation-loss patience 3 by default. The initial
+EAES threshold comparison uses 1, 3, and 5 validation-accuracy percentage points
+per Wh.
 
 ---
 
@@ -126,7 +126,44 @@ values remain to be selected by preliminary experiments.
 | Standard early-stopping patience | 3 epochs |
 | Energy measurement | CodeCarbon |
 
-The experimental settings will remain consistent across comparable training methods.
+The experimental settings were held consistent across comparable training methods.
+
+## Phase 3 — Three-Seed Comparison
+
+**Status: Completed for the initial study.** The five conditions (fixed, standard,
+EAES thresholds 1, 3, and 5) were run sequentially on CPU with seeds 42, 43, and
+44. This produced 15 valid experiment runs. Per-run CSVs and summaries are kept
+in their unique `results/<method>_seed<seed>_<time>/` folders; model checkpoints
+are not required for the aggregate analysis.
+
+| Method | Mean test accuracy (%) | Mean epochs | Mean training time (s) | Mean estimated energy (Wh) | Energy saved vs. fixed | Energy saved vs. standard |
+|---|---:|---:|---:|---:|---:|---:|
+| Fixed | 91.66 | 30.00 | 767.96 | 4.6385 | 0.00% | -190.50% |
+| Standard | 91.52 | 10.67 | 270.63 | 1.5967 | 65.58% | 0.00% |
+| EAES low (1) | 91.52 | 12.67 | 312.84 | 1.9074 | 58.88% | -19.46% |
+| EAES medium (3) | 91.66 | 8.67 | 215.83 | 1.3284 | 71.36% | 16.81% |
+| EAES high (5) | 91.66 | 8.00 | 197.97 | 1.2090 | 73.94% | 24.28% |
+
+Values are means over seeds 42, 43, and 44; the analysis CSV also reports
+sample standard deviations. EAES high had the lowest mean estimated energy and
+its mean test accuracy matched fixed training at the displayed precision. Its
+energy use was lower than standard on all three seeds; the low threshold used
+more energy than standard on average. These results are preliminary and do not
+establish that EAES will generalize to other datasets or model architectures.
+
+One initial EAES low-threshold seed-42 attempt is preserved but excluded from
+these aggregates. It recorded an epoch duration of 24,135 seconds and 67.35 Wh,
+exceeding the analyzer's five-times-cross-run-median review criterion for both
+duration and energy. The valid low-threshold seed-42 rerun is included instead.
+See `results/analysis/run_summary.csv` for the flagged run and reason.
+
+### Limitations
+
+This study uses one dataset (Fashion-MNIST), one CNN architecture, CodeCarbon
+energy and CO₂e estimates rather than direct physical meter readings, and only
+three training seeds. Results may differ on other datasets, architectures,
+hardware, or background-load conditions; the estimates should not be treated as
+exact measurements.
 
 ## Project Structure
 
@@ -193,11 +230,10 @@ python train.py --method standard --patience 3
 python train.py --method eaes --eaes-threshold YOUR_THRESHOLD
 ```
 
-Replace `YOUR_THRESHOLD` with the threshold selected for the experiment. No EAES
-threshold is selected in the project yet; the value is measured in validation
-accuracy percentage points per Wh. Use the same seed (default `42`) and hardware
-for comparable methods. Change the seed explicitly for repeated runs, for example
-`--seed 43`.
+Replace `YOUR_THRESHOLD` with the preliminary threshold selected for the
+experiment: `1` (low), `3` (medium), or `5` (high) validation accuracy percentage
+points per Wh. Use the same seed (default `42`) and hardware for comparable
+methods. Change the seed explicitly for repeated runs, for example `--seed 43`.
 
 To run a one-epoch integration smoke test without downloading Fashion-MNIST or
 producing research data:
@@ -216,6 +252,24 @@ Run the stopping-rule unit tests with:
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+After completing experiments with seeds 42, 43, and 44, generate validated
+run-level and method-level comparison CSVs and charts with:
+
+```bash
+python analyze_results.py
+```
+
+Outputs are written under `results/analysis/`: `run_summary.csv` includes
+validity and outlier review status for every run; `method_comparison.csv`
+contains means, standard deviations, and energy savings relative to fixed and
+standard training. It marks comparisons incomplete unless exactly one valid run
+exists for each of seeds 42, 43, and 44; duplicate runs for the same method and
+seed are flagged for review rather than silently pooled. Charts include mean
+energy and test accuracy with standard deviation error bars, mean training time,
+and completed epochs by seed. Extreme per-epoch duration or energy readings are
+flagged and excluded from aggregate comparisons while remaining in the run
+summary. The original Phase 1 graphs are not overwritten.
 
 ### 5. Generate the Original Phase 1 Training Graphs
 
